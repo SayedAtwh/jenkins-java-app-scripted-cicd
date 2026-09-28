@@ -13,24 +13,29 @@ node('agent-1') {
 
 
     stage("Checkout") {
-        git 'https://github.com/SayedAtwh/jenkins-java-app-scripted-cicd.git'
 
-        sh 'ls -la'
+        git branch: 'main',
+            url: 'https://github.com/SayedAtwh/jenkins-java-app-scripted-cicd.git'
+
         sh 'pwd'
+        sh 'ls -la'
     }
 
 
     stage("Build Java Application") {
+
         sh 'mvn clean package -DskipTests=true'
     }
 
 
     stage("Test Java Application") {
+
         sh 'mvn test'
     }
 
 
     stage("Build Docker Image") {
+
         sh "docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} ."
     }
 
