@@ -6,26 +6,31 @@ node('agent-1') {
     env.JAVA_HOME = jdkHome
     env.PATH = "${mavenHome}/bin:${jdkHome}/bin:${env.PATH}"
 
-
-
     def IMAGE_NAME = "java-app-declartive"
     def IMAGE_TAG = "sayedatwhdevops/java-app-declartive"
     def IMAGE_VERSION = "${BUILD_NUMBER}"
     def CONTAINER_NAME = "java-app-declartive"
 
-    stage("Build Java Application") {
 
-        sh "mvn clean package -DskipTests=true"
+    stage("Checkout") {
+        git 'https://github.com/SayedAtwh/jenkins-java-app-scripted-cicd.git'
+
+        sh 'ls -la'
+        sh 'pwd'
     }
 
-    stage("Test Java Application") {
 
-        sh "mvn test"
+    stage("Build Java Application") {
+        sh 'mvn clean package -DskipTests=true'
+    }
+
+
+    stage("Test Java Application") {
+        sh 'mvn test'
     }
 
 
     stage("Build Docker Image") {
-
         sh "docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} ."
     }
 
@@ -51,12 +56,14 @@ node('agent-1') {
         }
     }
 
+
     stage("Push Docker Image") {
 
         sh "docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_TAG}:${IMAGE_VERSION}"
 
         sh "docker push ${IMAGE_TAG}:${IMAGE_VERSION}"
     }
+
 
     stage("Deploy") {
 
