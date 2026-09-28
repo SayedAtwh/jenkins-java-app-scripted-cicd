@@ -22,7 +22,7 @@ pipeline {
           stages {
             stage("Build Java Application") {
                 steps {
-                   sh  " echo  " sayed atwh" "
+                   sh  " echo  sayed atwh " 
                    sh " mvn clean package -DskipTests=true "
                  }
               }
