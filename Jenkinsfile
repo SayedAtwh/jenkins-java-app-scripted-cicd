@@ -1,73 +1,72 @@
-pipeline {
+node('agent-1') {
 
-    agent none
-    tools {
-        jdk 'jdk-11'
-        maven 'maven'
+    def jdkHome = tool 'jdk-11'
+    def mavenHome = tool 'maven'
+
+    env.JAVA_HOME = jdkHome
+    env.PATH = "${mavenHome}/bin:${jdkHome}/bin:${env.PATH}"
+
+
+
+    def IMAGE_NAME = "java-app-declartive"
+    def IMAGE_TAG = "sayedatwhdevops/java-app-declartive"
+    def IMAGE_VERSION = "${BUILD_NUMBER}"
+    def CONTAINER_NAME = "java-app-declartive"
+
+    stage("Build Java Application") {
+
+        sh "mvn clean package -DskipTests=true"
     }
 
-    environment {
-        IMAGE_NAME = "java-app-declartive"
-        IMAGE_TAG = "sayedatwhdevops/java-app-declartive"
-        IMAGE_VERSION = "${BUILD_NUMBER}"
-        CONTAINER_NAME = "java-app-declartive"
+    stage("Test Java Application") {
+
+        sh "mvn test"
     }
 
-    stages {
 
-        stage("build And Test"){
-          stages {
-            stage("Build Java Application") {
-                steps {
-                   sh " mvn clean package -DskipTests=true "
-                 }
-              }
+    stage("Build Docker Image") {
 
-            stage("Test Java Application") {
-                steps {
-                  sh " mvn test "
-                 }
-              }            
-          }
+        sh "docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} ."
+    }
+
+
+    stage("Docker Login into DockerHub") {
+
+        withCredentials([
+            string(
+                credentialsId: 'DOCKER_USERNAME',
+                variable: 'DOCKER_USERNAME'
+            ),
+            string(
+                credentialsId: 'DOCKER_PASSWORD',
+                variable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+
+            sh '''
+                docker login \
+                    -u "$DOCKER_USERNAME" \
+                    -p "$DOCKER_PASSWORD"
+            '''
         }
+    }
 
-        stage("Build Docker Image") {
-            steps {
-                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .'
-            }
-        }
+    stage("Push Docker Image") {
 
-        stage("Docker Login into DockerHub") {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'DOCKER_USERNAME', variable: 'DOCKER_USERNAME'),
-                    string(credentialsId: 'DOCKER_PASSWORD', variable: 'DOCKER_PASSWORD')
-                ]) {
-                  
-                  sh " docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} "
-                 
-                }
-            }
-        }
+        sh "docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_TAG}:${IMAGE_VERSION}"
 
-        stage("Push Docker Image") {
-            steps {
-                sh 'docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_TAG}:${IMAGE_VERSION}'
-                sh 'docker push ${IMAGE_TAG}:${IMAGE_VERSION}'
-            }
-        }
+        sh "docker push ${IMAGE_TAG}:${IMAGE_VERSION}"
+    }
 
-       stage('Deploy') {
-         steps {
-           sh '''
-               docker rm -f ${CONTAINER_NAME} || true
+    stage("Deploy") {
 
-               docker run -d \
+        sh """
+            docker rm -f ${CONTAINER_NAME} || true
+
+            docker run -d \
                 --name ${CONTAINER_NAME} \
-                -p 8089:8090 \
-                 ${IMAGE_TAG}:${IMAGE_VERSION}
-        '''
-    }
-}
+                -p 8080:8080 \
+                ${IMAGE_TAG}:${IMAGE_VERSION}
+        """
     }
 }
