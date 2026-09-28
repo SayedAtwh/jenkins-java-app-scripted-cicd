@@ -1,9 +1,6 @@
 pipeline {
 
-    agent {
-        label 'agent-1'
-    }
-
+    agent any
     tools {
         jdk 'jdk-11'
         maven 'maven'
@@ -22,7 +19,6 @@ pipeline {
           stages {
             stage("Build Java Application") {
                 steps {
-                   sh  " echo  sayed atwh " 
                    sh " mvn clean package -DskipTests=true "
                  }
               }
